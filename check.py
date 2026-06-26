@@ -1,18 +1,6 @@
 import os
-import requests
 
-BOT_TOKEN = os.environ["BOT_TOKEN"]
-CHAT_ID = os.environ["CHAT_ID"]
+token = os.environ["BOT_TOKEN"]
 
-url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-
-response = requests.post(
-    url,
-    data={
-        "chat_id": CHAT_ID,
-        "text": "Test"
-    }
-)
-
-print(response.status_code)
-print(response.text)
+print("Lengte token:", len(token))
+print("Begint met:", token[:12])
