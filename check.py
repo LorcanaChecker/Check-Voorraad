@@ -1,59 +1,119 @@
-import os
-import json
-import requests
+from datetime import datetime
 
-BOT_TOKEN = os.environ["BOT_TOKEN"].strip()
-CHAT_ID = os.environ["CHAT_ID"].strip()
+from shops import intertoys, bazaar, tcgfamily
+from telegram import stock_message, soldout_message, price_message
+from state import load_state, save_state, get_product, set_product
 
-PRODUCTS = {
-    "Intertoys Wilds Unknown Booster": "https://www.intertoys.nl/disney-lorcana-tcg-wilds-unknown-sleeved-booster",
-    "Bazaar Attack of the Vine Booster Box": "https://www.bazaarofmagic.eu/nl-NL/p/disney-lorcana-attack-of-the-vine-boosterbox-24-boosters/9161569",
-    "TCG Family Wilds Unknown Booster Box": "https://www.tcgfamily.nl/en/products/disney-lorcana-wilds-unknown-boosterbox-24-boosters",
-    "TCG Family Attack of the Vine Booster Box": "https://www.tcgfamily.nl/en/products/disney-lorcana-attack-of-the-vine-boosterbox-24-boosters-kopie-1",
-    "TCG Family Wilds Unknown Booster": "https://www.tcgfamily.nl/en/products/disney-lorcana-wilds-unknown-booster",
-    "TCG Family Attack of the Vine Trove": "https://www.tcgfamily.nl/en/products/disney-lorcana-attack-of-the-vine-illumineers-trove-kopie"
-}
-
-KEYWORDS = [
-    "op voorraad",
-    "in winkelwagen",
-    "in stock",
-    "add to cart",
-    "buy now"
+PRODUCTS = [
+    {
+        "key": "intertoys_booster",
+        "shop": "Intertoys",
+        "product": "Wilds Unknown Sleeved Booster",
+        "url": "https://www.intertoys.nl/disney-lorcana-tcg-wilds-unknown-sleeved-booster",
+        "checker": intertoys
+    },
+    {
+        "key": "bazaar_box",
+        "shop": "Bazaar of Magic",
+        "product": "Attack of the Vine Booster Box",
+        "url": "https://www.bazaarofmagic.eu/nl-NL/p/disney-lorcana-attack-of-the-vine-boosterbox-24-boosters/9161569",
+        "checker": bazaar
+    },
+    {
+        "key": "tcg_box",
+        "shop": "TCG Family",
+        "product": "Attack of the Vine Booster Box",
+        "url": "https://www.tcgfamily.nl/en/products/disney-lorcana-attack-of-the-vine-boosterbox-24-boosters-kopie-1",
+        "checker": tcgfamily
+    },
+    {
+        "key": "tcg_trove",
+        "shop": "TCG Family",
+        "product": "Attack of the Vine Illumineer's Trove",
+        "url": "https://www.tcgfamily.nl/en/products/disney-lorcana-attack-of-the-vine-illumineers-trove-kopie",
+        "checker": tcgfamily
+    }
 ]
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0"
-}
+state = load_state()
 
-try:
-    with open("state.json", "r") as f:
-        state = json.load(f)
-except:
-    state = {}
+checked = 0
+available = 0
+changed = 0
 
-for name, url in PRODUCTS.items():
+now = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+
+for item in PRODUCTS:
+
+    checked += 1
+
     try:
-        r = requests.get(url, headers=HEADERS, timeout=20)
-        text = r.text.lower()
 
-        available = any(k in text for k in KEYWORDS)
+        result = item["checker"](item["url"])
 
-        if available and not state.get(name, False):
-            requests.post(
-                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-                data={
-                    "chat_id": CHAT_ID,
-                    "text": f"🎉 {name} lijkt op voorraad!\n{url}"
-                }
-            )
-            state[name] = True
+        current = get_product(state, item["key"])
 
-        elif not available:
-            state[name] = False
+        if result["available"]:
+            available += 1
+
+        if result["available"] != current["available"]:
+
+            changed += 1
+
+            if result["available"]:
+
+                stock_message(
+                    item["shop"],
+                    item["product"],
+                    result["price"],
+                    item["url"],
+                    now
+                )
+
+            else:
+
+                soldout_message(
+                    item["shop"],
+                    item["product"],
+                    item["url"],
+                    now
+                )
+
+        elif result["price"] != current["price"]:
+
+            if result["price"] != "Onbekend":
+
+                changed += 1
+
+                price_message(
+                    item["shop"],
+                    item["product"],
+                    current["price"],
+                    result["price"],
+                    item["url"],
+                    now
+                )
+
+        set_product(
+            state,
+            item["key"],
+            result["available"],
+            result["price"]
+        )
 
     except Exception as e:
-        print(name, e)
 
-with open("state.json", "w") as f:
-    json.dump(state, f)
+        print(item["shop"], e)
+
+save_state(state)
+
+print()
+
+print("====================================")
+print("Controle voltooid")
+print("------------------------------------")
+print("Winkels:", checked)
+print("Op voorraad:", available)
+print("Wijzigingen:", changed)
+print("Tijd:", now)
+print("====================================")
