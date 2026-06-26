@@ -1,6 +1,7 @@
 import os
 
-token = os.environ["BOT_TOKEN"]
+BOT_TOKEN = os.environ["BOT_TOKEN"].strip()
 
-print("Lengte token:", len(token))
-print("Begint met:", token[:12])
+url = f"https://api.telegram.org/bot{BOT_TOKEN}/getMe"
+
+print(url[:45] + "...")
