@@ -37,18 +37,23 @@ def remove_subscriber(chat_id):
 
 
 def send_message(message):
+
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
-    response = requests.post(
-        url,
-        data={
-            "chat_id": CHAT_ID,
-            "text": message
-        },
-        timeout=20
-    )
+    subscribers = load_subscribers()
 
-    return response.status_code == 200
+    for chat_id in subscribers:
+
+        requests.post(
+            url,
+            data={
+                "chat_id": chat_id,
+                "text": message
+            },
+            timeout=20
+        )
+
+    return True
 
 
 def stock_message(shop, product, price, url, time):
