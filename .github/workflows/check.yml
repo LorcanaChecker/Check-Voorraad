@@ -2,7 +2,7 @@ name: Lorcana Stock Check
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "* * * * *"
   workflow_dispatch:
 
 jobs:
@@ -18,8 +18,12 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Run Python script
+            - name: Run bot listener
+        run: python bot.py
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+
+      - name: Run voorraad controle
         run: python check.py
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.CHAT_ID }}
