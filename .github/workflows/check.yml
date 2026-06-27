@@ -18,7 +18,7 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-            - name: Run bot listener
+      - name: Run bot listener
         run: python bot.py
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
