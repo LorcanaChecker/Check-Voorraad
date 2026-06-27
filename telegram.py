@@ -2,7 +2,38 @@ import os
 import requests
 
 BOT_TOKEN = os.environ["BOT_TOKEN"].strip()
-CHAT_ID = os.environ["CHAT_ID"].strip()
+import json
+
+SUBSCRIBERS_FILE = "subscribers.json"
+
+
+def load_subscribers():
+    try:
+        with open(SUBSCRIBERS_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return []
+
+
+def save_subscribers(subscribers):
+    with open(SUBSCRIBERS_FILE, "w") as f:
+        json.dump(subscribers, f)
+
+
+def add_subscriber(chat_id):
+    subscribers = load_subscribers()
+
+    if chat_id not in subscribers:
+        subscribers.append(chat_id)
+        save_subscribers(subscribers)
+
+
+def remove_subscriber(chat_id):
+    subscribers = load_subscribers()
+
+    if chat_id in subscribers:
+        subscribers.remove(chat_id)
+        save_subscribers(subscribers)
 
 
 def send_message(message):
